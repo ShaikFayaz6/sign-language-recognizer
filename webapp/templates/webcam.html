@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Webcam - Sign Language Recognizer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Webcam Recognition</h1>
+    <p>Real-time sign language alphabet recognition using your webcam</p>
+</div>
+
+<div class="webcam-container">
+    <div class="webcam-section">
+        <div class="video-wrapper">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+            <div class="webcam-overlay">
+                <div class="capture-frame"></div>
+                <p class="overlay-text">Position your hand inside the frame</p>
+            </div>
+        </div>
+
+        <div class="webcam-controls">
+            <button id="startBtn" class="btn btn-primary">Start Webcam</button>
+            <button id="captureBtn" class="btn btn-success" style="display: none;">Capture & Classify</button>
+            <button id="stopBtn" class="btn btn-secondary" style="display: none;">Stop Webcam</button>
+        </div>
+
+        <div id="webcamError" class="error-message" style="display: none;">
+            <p>⚠️ <span id="webcamErrorText"></span></p>
+        </div>
+    </div>
+
+    <div class="result-panel">
+        <h3>Result</h3>
+        <div id="webcamResult" class="result-display">
+            <div class="no-result">
+                <p>👆 Start webcam and capture an image to see predictions</p>
+            </div>
+        </div>
+
+        <div id="webcamLoading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Analyzing...</p>
+        </div>
+
+        <div id="webcamPrediction" style="display: none;">
+            <div class="prediction-result">
+                <div class="predicted-letter-large" id="webcamPredictedLetter">-</div>
+                <div class="confidence-display">
+                    <span>Confidence:</span>
+                    <span id="webcamConfidence" class="confidence-value">-</span>
+                </div>
+            </div>
+
+            <div class="top-predictions-mini">
+                <h4>Top 3 Predictions:</h4>
+                <div id="webcamTopPredictions"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="webcamDownloadBtn" class="btn btn-primary">Download Result</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="instructions">
+    <h3>📋 Instructions</h3>
+    <ol>
+        <li>Click "Start Webcam" to activate your camera</li>
+        <li>Position your hand making a sign language gesture inside the frame</li>
+        <li>Click "Capture & Classify" to take a snapshot and get prediction</li>
+        <li>View results and download if needed</li>
+    </ol>
+    <p class="note"><strong>Note:</strong> Make sure your browser has permission to access your webcam.</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let stream = null;
+    let currentResult = null;
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Start webcam
+    $('#startBtn').on('click', async function() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                } 
+            });
+            video.srcObject = stream;
+            
+            $('#startBtn').hide();
+            $('#captureBtn').show();
+            $('#stopBtn').show();
+            hideError();
+            
+        } catch (error) {
+            showError('Failed to access webcam. Please ensure you have granted camera permissions.');
+            console.error('Webcam error:', error);
+        }
+    });
+
+    // Stop webcam
+    $('#stopBtn').on('click', function() {
+        stopWebcam();
+    });
+
+    function stopWebcam() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+            stream = null;
+        }
+        $('#startBtn').show();
+        $('#captureBtn').hide();
+        $('#stopBtn').hide();
+    }
+
+    // Capture and classify
+    $('#captureBtn').on('click', function() {
+        captureAndClassify();
+    });
+
+    function captureAndClassify() {
+        // Set canvas size to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Draw video frame to canvas
+        ctx.drawImage(video, 0, 0);
+
+        // Convert canvas to blob
+        canvas.toBlob(function(blob) {
+            // Show loading
+            $('#webcamResult .no-result').hide();
+            $('#webcamPrediction').hide();
+            $('#webcamLoading').show();
+
+            // Send to API
+            const formData = new FormData();
+            formData.append('image', blob, 'webcam.jpg');
+
+            $.ajax({
+                url: '/api/predict',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#webcamLoading').hide();
+                    displayWebcamResult(response);
+                },
+                error: function(xhr) {
+                    $('#webcamLoading').hide();
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : 'Prediction failed';
+                    showError(error);
+                }
+            });
+        }, 'image/jpeg', 0.9);
+    }
+
+    function displayWebcamResult(result) {
+        currentResult = result;
+
+        $('#webcamPredictedLetter').text(result.prediction);
+        $('#webcamConfidence').text((result.confidence * 100).toFixed(2) + '%');
+
+        // Show top 3 predictions
+        let topHtml = '';
+        result.top_predictions.slice(0, 3).forEach(pred => {
+            topHtml += `
+                <div class="prediction-mini-item">
+                    <span class="mini-label">${pred.label}</span>
+                    <span class="mini-score">${(pred.confidence * 100).toFixed(1)}%</span>
+                </div>
+            `;
+        });
+        $('#webcamTopPredictions').html(topHtml);
+
+        $('#webcamPrediction').show();
+    }
+
+    // Download webcam result
+    $('#webcamDownloadBtn').on('click', function() {
+        if (!currentResult) return;
+
+        $.ajax({
+            url: '/api/download_result',
+            type: 'POST',
+            data: JSON.stringify(currentResult),
+            contentType: 'application/json',
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function(blob) {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `webcam_prediction_${currentResult.prediction}_${Date.now()}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            },
+            error: function() {
+                alert('Failed to download result');
+            }
+        });
+    });
+
+    function showError(message) {
+        $('#webcamErrorText').text(message);
+        $('#webcamError').show();
+    }
+
+    function hideError() {
+        $('#webcamError').hide();
+    }
+
+    // Cleanup on page unload
+    $(window).on('unload', function() {
+        stopWebcam();
+    });
+});
+</script>
+{% endblock %}

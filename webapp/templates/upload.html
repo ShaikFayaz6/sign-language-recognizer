@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Image - Sign Language Recognizer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Upload Image</h1>
+    <p>Upload a sign language alphabet image for recognition</p>
+</div>
+
+<div class="upload-container">
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-content">
+            <div class="upload-icon">📤</div>
+            <h3>Drag & Drop Image Here</h3>
+            <p>or click to browse</p>
+            <p class="file-types">Supported: JPG, PNG, GIF, BMP (Max 10MB)</p>
+        </div>
+    </div>
+
+    <div id="previewSection" style="display: none;">
+        <h3>Image Preview</h3>
+        <img id="imagePreview" alt="Preview">
+        <div class="button-group">
+            <button id="classifyBtn" class="btn btn-primary">Classify Image</button>
+            <button id="clearBtn" class="btn btn-secondary">Clear</button>
+        </div>
+    </div>
+
+    <div id="loadingSection" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Analyzing image...</p>
+    </div>
+
+    <div id="resultSection" style="display: none;">
+        <div class="result-card">
+            <h2>Prediction Result</h2>
+            <div class="prediction-main">
+                <div class="predicted-letter" id="predictedLetter">-</div>
+                <div class="confidence-score">
+                    <span class="confidence-label">Confidence:</span>
+                    <span class="confidence-value" id="confidenceScore">-</span>
+                </div>
+            </div>
+
+            <div class="top-predictions">
+                <h4>Top 5 Predictions:</h4>
+                <div id="topPredictionsList"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="downloadBtn" class="btn btn-primary">Download Result</button>
+                <button id="uploadAnotherBtn" class="btn btn-secondary">Upload Another</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="errorSection" style="display: none;">
+        <div class="error-card">
+            <div class="error-icon">⚠️</div>
+            <h3>Error</h3>
+            <p id="errorMessage"></p>
+            <button id="retryBtn" class="btn btn-secondary">Try Again</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    console.log('Upload page JavaScript loaded');
+    
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const previewSection = $('#previewSection');
+    const imagePreview = $('#imagePreview');
+    const loadingSection = $('#loadingSection');
+    const resultSection = $('#resultSection');
+    const errorSection = $('#errorSection');
+    
+    let currentFile = null;
+    let currentResult = null;
+
+    console.log('Upload area element:', uploadArea);
+    console.log('File input element:', fileInput);
+
+    // Click to upload - simple vanilla JavaScript approach
+    if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', function(e) {
+            console.log('Upload area clicked!');
+            e.preventDefault();
+            fileInput.click();
+            console.log('File input click triggered');
+        });
+        
+        console.log('Click event listener attached to upload area');
+    } else {
+        console.error('Upload area or file input not found!');
+    }
+
+    // Drag and drop - use vanilla JavaScript
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                console.log('File dropped:', files[0].name);
+                handleFile(files[0]);
+            }
+        });
+    }
+
+    // File input change - use vanilla JavaScript
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            console.log('File input changed');
+            if (this.files.length > 0) {
+                console.log('File selected:', this.files[0].name);
+                handleFile(this.files[0]);
+            }
+        });
+    }
+
+    function handleFile(file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            showError('Please upload an image file (JPG, PNG, GIF, BMP)');
+            return;
+        }
+
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            showError('File size exceeds 10MB limit');
+            return;
+        }
+
+        currentFile = file;
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            console.log('Image loaded, showing preview');
+            imagePreview.attr('src', e.target.result);
+            $('#uploadArea').hide();
+            previewSection.show();
+            loadingSection.hide();
+            resultSection.hide();
+            errorSection.hide();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Classify button - use vanilla JavaScript
+    const classifyBtn = document.getElementById('classifyBtn');
+    if (classifyBtn) {
+        classifyBtn.addEventListener('click', function() {
+            console.log('Classify button clicked');
+            classifyImage();
+        });
+    }
+
+    function classifyImage() {
+        const formData = new FormData();
+        formData.append('image', currentFile);
+
+        previewSection.hide();
+        loadingSection.show();
+        hideError();
+
+        $.ajax({
+            url: '/api/predict',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                loadingSection.hide();
+                displayResult(response);
+            },
+            error: function(xhr) {
+                loadingSection.hide();
+                const error = xhr.responseJSON ? xhr.responseJSON.error : 'Prediction failed';
+                showError(error);
+            }
+        });
+    }
+
+    function displayResult(result) {
+        currentResult = result;
+        
+        $('#predictedLetter').text(result.prediction);
+        $('#confidenceScore').text((result.confidence * 100).toFixed(2) + '%');
+
+        // Display top predictions
+        let topHtml = '';
+        result.top_predictions.forEach((pred, index) => {
+            const barWidth = (pred.confidence * 100).toFixed(1);
+            topHtml += `
+                <div class="prediction-item">
+                    <span class="pred-label">${pred.label}</span>
+                    <div class="pred-bar">
+                        <div class="pred-bar-fill" style="width: ${barWidth}%"></div>
+                    </div>
+                    <span class="pred-score">${barWidth}%</span>
+                </div>
+            `;
+        });
+        $('#topPredictionsList').html(topHtml);
+
+        resultSection.show();
+    }
+
+    // Download result - use vanilla JavaScript for better compatibility
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            console.log('Download button clicked');
+            if (!currentResult) {
+                console.log('No current result to download');
+                return;
+            }
+
+            $.ajax({
+                url: '/api/download_result',
+                type: 'POST',
+                data: JSON.stringify(currentResult),
+                contentType: 'application/json',
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function(blob) {
+                    console.log('Download successful, creating file');
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `prediction_${currentResult.prediction}_${Date.now()}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Download failed:', error);
+                    alert('Failed to download result');
+                }
+            });
+        });
+    }
+
+    // Clear/Reset buttons - use vanilla JavaScript
+    const clearBtn = document.getElementById('clearBtn');
+    const uploadAnotherBtn = document.getElementById('uploadAnotherBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            console.log('Clear button clicked');
+            reset();
+        });
+    }
+    
+    if (uploadAnotherBtn) {
+        uploadAnotherBtn.addEventListener('click', function() {
+            console.log('Upload Another button clicked');
+            reset();
+        });
+    }
+    
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
+            console.log('Retry button clicked');
+            reset();
+        });
+    }
+
+    function reset() {
+        console.log('Resetting upload form');
+        currentFile = null;
+        currentResult = null;
+        fileInput.value = ''; // Clear file input (vanilla JS)
+        hideAll();
+        $('#uploadArea').show();
+    }
+
+    function hideAll() {
+        previewSection.hide();
+        loadingSection.hide();
+        resultSection.hide();
+        errorSection.hide();
+    }
+
+    function showError(message) {
+        $('#errorMessage').text(message);
+        errorSection.show();
+    }
+
+    function hideError() {
+        errorSection.hide();
+    }
+});
+</script>
+{% endblock %}

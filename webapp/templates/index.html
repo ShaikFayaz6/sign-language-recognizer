@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Sign Language Recognizer{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <h1 class="hero-title">Sign Language Alphabet Recognizer</h1>
+    <p class="hero-subtitle">AI-powered real-time sign language recognition using TensorFlow</p>
+    <div class="hero-buttons">
+        <a href="{{ url_for('upload_page') }}" class="btn btn-primary">Upload Image</a>
+        <a href="{{ url_for('webcam_page') }}" class="btn btn-secondary">Use Webcam</a>
+    </div>
+</div>
+
+<div class="features-grid">
+    <div class="feature-card">
+        <div class="feature-icon">📸</div>
+        <h3>Upload Images</h3>
+        <p>Upload any image of sign language alphabet (A-Z) and get instant predictions</p>
+        <a href="{{ url_for('upload_page') }}" class="btn-link">Try Upload →</a>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-icon">📹</div>
+        <h3>Real-time Webcam</h3>
+        <p>Use your webcam for live sign language recognition with instant feedback</p>
+        <a href="{{ url_for('webcam_page') }}" class="btn-link">Try Webcam →</a>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>View History</h3>
+        <p>Track your past predictions with timestamps and confidence scores</p>
+        <a href="{{ url_for('history_page') }}" class="btn-link">View History →</a>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-icon">💾</div>
+        <h3>Download Results</h3>
+        <p>Save prediction results as text files for your records</p>
+        <a href="#" class="btn-link">Learn More →</a>
+    </div>
+</div>
+
+<div class="info-section">
+    <h2>How It Works</h2>
+    <div class="steps-grid">
+        <div class="step">
+            <div class="step-number">1</div>
+            <h4>Capture or Upload</h4>
+            <p>Take a photo with webcam or upload an existing image</p>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <h4>AI Processing</h4>
+            <p>Our TensorFlow model analyzes the sign language gesture</p>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <h4>Get Results</h4>
+            <p>Receive predictions with confidence scores instantly</p>
+        </div>
+        <div class="step">
+            <div class="step-number">4</div>
+            <h4>Save & Track</h4>
+            <p>Download results and view your prediction history</p>
+        </div>
+    </div>
+</div>
+
+<div class="tech-stack">
+    <h3>Powered By</h3>
+    <div class="tech-badges">
+        <span class="badge">Python 3.8+</span>
+        <span class="badge">TensorFlow 2.x</span>
+        <span class="badge">Flask</span>
+        <span class="badge">OpenCV</span>
+        <span class="badge">SQLite</span>
+    </div>
+</div>
+{% endblock %}

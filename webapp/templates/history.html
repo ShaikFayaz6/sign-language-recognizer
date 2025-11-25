@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}History - Sign Language Recognizer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Prediction History</h1>
+    <p>View your recent sign language predictions</p>
+</div>
+
+<div class="history-actions">
+    <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+    <button id="clearHistoryBtn" class="btn btn-danger">Clear All History</button>
+</div>
+
+{% if predictions %}
+<div class="history-table-container">
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Predicted Letter</th>
+                <th>Confidence</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pred in predictions %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    <span class="letter-badge">{{ pred.predicted_letter }}</span>
+                </td>
+                <td>
+                    <div class="confidence-bar-container">
+                        <div class="confidence-bar" style="width: {{ (pred.confidence * 100)|round }}%">
+                            <span class="confidence-text">{{ (pred.confidence * 100)|round(2) }}%</span>
+                        </div>
+                    </div>
+                </td>
+                <td>{{ pred.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="history-stats">
+    <p>Showing {{ predictions|length }} most recent predictions</p>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <h3>No Predictions Yet</h3>
+    <p>Start making predictions to see your history here!</p>
+    <div class="button-group">
+        <a href="{{ url_for('upload_page') }}" class="btn btn-primary">Upload Image</a>
+        <a href="{{ url_for('webcam_page') }}" class="btn btn-secondary">Use Webcam</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Refresh button
+    $('#refreshBtn').on('click', function() {
+        location.reload();
+    });
+
+    // Clear history button
+    $('#clearHistoryBtn').on('click', function() {
+        if (confirm('Are you sure you want to clear all prediction history? This cannot be undone.')) {
+            $.ajax({
+                url: '/api/clear_history',
+                type: 'POST',
+                success: function(response) {
+                    alert('History cleared successfully!');
+                    location.reload();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : 'Failed to clear history';
+                    alert('Error: ' + error);
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
