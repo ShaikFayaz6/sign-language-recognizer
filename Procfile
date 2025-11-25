@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 webapp.app:app
+web: sh -c "gunicorn --bind 0.0.0.0:\$PORT --workers 2 --timeout 120 webapp.app:app"
