@@ -1,18 +1,39 @@
-FROM ubuntu:16.04
+# Use Python 3.8 slim image
+FROM python:3.8-slim
 
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for OpenCV
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-tk \
-    python-opencv
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /handstracker
-WORKDIR /handstracker
+# Copy requirements first for better caching
+COPY requirements.txt .
 
-ADD requirements.txt /handstracker
-ADD train.py /handstracker
-ADD classify.py /handstracker
-ADD classify_webcam.py /handstracker
-COPY dataset /handstracker/dataset/
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip3 install -r requirements.txt
+# Copy application files
+COPY webapp/ ./webapp/
+COPY logs/ ./logs/
+COPY dataset/ ./dataset/
+
+# Create temp_uploads directory
+RUN mkdir -p webapp/temp_uploads
+
+# Set environment variables
+ENV FLASK_APP=webapp/app.py
+ENV FLASK_ENV=production
+ENV PORT=8080
+
+# Expose port
+EXPOSE 8080
+
+# Run gunicorn
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 webapp.app:app
