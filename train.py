@@ -597,7 +597,7 @@ def add_input_distortions(flip_left_right, random_crop, random_scale,
     margin_scale = 1.0 + (random_crop / 100.0)
     resize_scale = 1.0 + (random_scale / 100.0)
     margin_scale_value = tf.constant(margin_scale)
-    resize_scale_value = tf.random_uniform(tensor_shape.scalar(),
+    resize_scale_value = tf.compat.v1.random_uniform([],
                                          minval=1.0,
                                          maxval=resize_scale)
     scale_value = tf.multiply(margin_scale_value, resize_scale_value)
@@ -605,10 +605,10 @@ def add_input_distortions(flip_left_right, random_crop, random_scale,
     precrop_height = tf.multiply(scale_value, MODEL_INPUT_HEIGHT)
     precrop_shape = tf.stack([precrop_height, precrop_width])
     precrop_shape_as_int = tf.cast(precrop_shape, dtype=tf.int32)
-    precropped_image = tf.image.resize_bilinear(decoded_image_4d,
+    precropped_image = tf.compat.v1.image.resize_bilinear(decoded_image_4d,
                                               precrop_shape_as_int)
-    precropped_image_3d = tf.squeeze(precropped_image, squeeze_dims=[0])
-    cropped_image = tf.random_crop(precropped_image_3d,
+    precropped_image_3d = tf.squeeze(precropped_image, axis=[0])
+    cropped_image = tf.image.random_crop(precropped_image_3d,
                                  [MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH,
                                   MODEL_INPUT_DEPTH])
     if flip_left_right:
@@ -617,7 +617,7 @@ def add_input_distortions(flip_left_right, random_crop, random_scale,
         flipped_image = cropped_image
     brightness_min = 1.0 - (random_brightness / 100.0)
     brightness_max = 1.0 + (random_brightness / 100.0)
-    brightness_value = tf.random_uniform(tensor_shape.scalar(),
+    brightness_value = tf.compat.v1.random_uniform([],
                                        minval=brightness_min,
                                        maxval=brightness_max)
     brightened_image = tf.multiply(flipped_image, brightness_value)
