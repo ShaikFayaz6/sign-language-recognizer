@@ -20,8 +20,8 @@ class MLInferenceEngine:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         parent_dir = os.path.dirname(current_dir)
         
-        self.model_path = os.path.join(parent_dir, "logs", "output_graph.pb")
-        self.labels_path = os.path.join(parent_dir, "logs", "output_labels.txt")
+        self.model_path = os.path.join(parent_dir, "logs", "output_graph_improved.pb")
+        self.labels_path = os.path.join(parent_dir, "logs", "output_labels_improved.txt")
         self.sess = None
         self.softmax_tensor = None
         self.label_lines = []
