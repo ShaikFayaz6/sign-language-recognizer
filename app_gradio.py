@@ -123,25 +123,7 @@ with gr.Blocks(title="Sign Language Alphabet Recognizer", theme=gr.themes.Soft()
             # Predict button
             predict_btn = gr.Button("🔍 Predict Sign", variant="primary", size="lg")
             
-            # Example images - only show if files exist
-            try:
-                example_images = []
-                for letter in ['A', 'B', 'C']:
-                    folder = f"dataset/{letter}"
-                    if os.path.exists(folder):
-                        images = [f for f in os.listdir(folder) if f.lower().endswith(('.jpg', '.png'))]
-                        if images:
-                            example_images.append([os.path.join(folder, images[0])])
-                
-                if example_images:
-                    gr.Markdown("### 📸 Try These Examples:")
-                    gr.Examples(
-                        examples=example_images,
-                        inputs=input_image,
-                        label="Sample Images"
-                    )
-            except Exception as e:
-                print(f"Warning: Could not load example images: {e}")
+
         
         with gr.Column(scale=1):
             # Prediction output
