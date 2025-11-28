@@ -9,10 +9,13 @@ import cv2
 from PIL import Image
 import tensorflow as tf
 import os
+import sys
 
 # Disable TensorFlow warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.compat.v1.disable_eager_execution()
+
+print("Starting app initialization...", file=sys.stderr)
 
 # Load model and labels
 print("Loading ML model...")
