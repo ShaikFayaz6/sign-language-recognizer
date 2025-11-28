@@ -97,7 +97,7 @@ def predict_sign(image):
         return error_msg, {}
 
 # Create Gradio interface
-with gr.Blocks(title="Sign Language Alphabet Recognizer", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="Sign Language Alphabet Recognizer") as demo:
     gr.Markdown("""
     # 🤟 Sign Language Alphabet Recognizer
     
