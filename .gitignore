@@ -85,7 +85,19 @@ celerybeat-schedule
 # virtualenv
 .venv
 venv/
+venv_*/
 ENV/
+
+# Database files
+*.db
+
+# Temp uploads
+temp_uploads/
+webapp/temp_uploads/
+
+# Old/unnecessary folders
+sent/
+deployment/
 
 # Spyder project settings
 .spyderproject
